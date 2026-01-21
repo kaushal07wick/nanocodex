@@ -6,7 +6,14 @@ import urllib.request
 import glob
 import re
 
-API_URL = "https://api.openai.com/v1/responses"
+OPENROUTER_KEY = os.getenv("OPENROUTER_API_KEY")
+
+API_URL = (
+    "https://openrouter.ai/api/v1/responses"
+    if OPENROUTER_KEY
+    else "https://api.openai.com/v1/responses"
+)
+
 MODEL = os.getenv("MODEL", "gpt-5.2")
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 CWD = os.getcwd()
@@ -16,6 +23,11 @@ if not OPENAI_KEY:
 
 RESET, BOLD, DIM = "\033[0m", "\033[1m", "\033[2m"
 BLUE, CYAN, GREEN, YELLOW = "\033[34m", "\033[36m", "\033[32m", "\033[33m"
+
+def resolved_model():
+    if OPENROUTER_KEY and not MODEL.startswith("openai/"):
+        return f"openai/{MODEL}"
+    return MODEL
 
 def sep():
     import shutil
@@ -176,7 +188,7 @@ TOOL_IMPL = {
 # call openai
 def call_openai(input_items):
     payload = {
-        "model": MODEL,
+        "model": resolved_model(),
         "instructions": (
             "You are a careful & concise coding assistant with tool access.\n"
             f"Current directory: {CWD}\n"
@@ -197,7 +209,7 @@ def call_openai(input_items):
         API_URL,
         data=json.dumps(payload).encode(),
         headers={
-            "Authorization": f"Bearer {OPENAI_KEY}",
+            "Authorization": f"Bearer {OPENROUTER_KEY or OPENAI_KEY}",
             "Content-Type": "application/json"
         }
     )
